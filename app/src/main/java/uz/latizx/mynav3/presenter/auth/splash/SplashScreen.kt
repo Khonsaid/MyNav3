@@ -59,7 +59,7 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Nav3 Bank",
+                text = "Nav3 DEMO",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,

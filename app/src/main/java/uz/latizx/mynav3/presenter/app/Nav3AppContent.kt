@@ -1,5 +1,6 @@
 package uz.latizx.mynav3.presenter.app
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.expandVertically
@@ -34,6 +35,7 @@ import uz.latizx.mynav3.core.navigation.rememberNavigationState
 import uz.latizx.mynav3.core.navigation.toEntries
 import uz.latizx.mynav3.core.navigation.BottomSheetSceneStrategy
 import uz.latizx.mynav3.core.navigation.NavTransitions
+import uz.latizx.mynav3.core.navigation.deeplink.DeepLinkTarget
 import uz.latizx.mynav3.core.navigation.shouldShowBottomBar
 import uz.latizx.mynav3.presenter.auth.navigation.SplashKey
 
@@ -61,7 +63,7 @@ import uz.latizx.mynav3.presenter.auth.navigation.SplashKey
 @Composable
 fun Nav3AppContent(
     entryInstallers: Set<EntryProviderInstaller>,
-    deepLinks: Flow<List<NavKey>>,
+    deepLinks: Flow<DeepLinkTarget>,
 ) {
     // 1) Holat: barcha back stack'lar (rotation va process death'dan keyin tiklanadi)
     val navigationState = rememberNavigationState(
@@ -72,10 +74,11 @@ fun Nav3AppContent(
 
     // 2) Navigator: holatni o'zgartiruvchi yagona joy
     val navigator = remember(navigationState) { Navigator(navigationState) }
+    val activity = LocalActivity.current
 
     // 3) Deep link'lar (cold start + ilova ochiq turganda kelganlari)
     LaunchedEffect(navigator, deepLinks) {
-        deepLinks.collect { backStack -> navigator.openDeepLink(backStack) }
+        deepLinks.collect { target -> navigator.openDeepLink(target.backStack, target.exitOnBack) }
     }
 
     // 4) entryProvider: NavKey → NavEntry (ekran). Har bir feature o'z qismini o'rnatadi.
@@ -127,7 +130,9 @@ fun Nav3AppContent(
                 NavDisplay(
                     entries = entries,
                     // Tizim Back / predictive back → Navigator. Har bir yopiladigan entry uchun bir marta.
-                    onBack = navigator::goBack,
+                    onBack = {
+                        if (!navigator.onSystemBack()) activity?.finish()
+                    },
                     modifier = Modifier.fillMaxSize(),
                     sceneStrategies = listOf(dialogStrategy, bottomSheetStrategy),
                     transitionSpec = NavTransitions.forward,

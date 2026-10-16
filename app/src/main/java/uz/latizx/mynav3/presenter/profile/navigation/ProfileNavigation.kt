@@ -29,6 +29,8 @@ import uz.latizx.mynav3.presenter.profile.LogoutDialog
 import uz.latizx.mynav3.presenter.profile.ProfileRoute
 import uz.latizx.mynav3.presenter.profile.ProfileScreenContract
 import uz.latizx.mynav3.presenter.profile.ProfileViewModel
+import uz.latizx.mynav3.presenter.settings.navigation.NotificationsKey
+import uz.latizx.mynav3.presenter.settings.navigation.SettingsKey
 
 /**
  * PROFIL feature'i:
@@ -55,6 +57,9 @@ fun EntryProviderScope<NavKey>.profileEntries(navigator: Navigator) {
             onOpenLogoutDialog = { navigator.navigate(LogoutDialogKey) },
             // Logout: barcha ekranlar (va ularning ViewModel'lari) tozalanadi
             onLoggedOut = { navigator.logout(loginKey = LoginKey) },
+            // Sozlamalar tabi tanlanadi va uning stack'i [Sozlamalar, Bildirishnomalar] bo'ladi.
+            // Back → Sozlamalar ro'yxati → (yana Back) → uy tab.
+            onOpenNotificationSettings = { navigator.navigateInTab(SettingsKey, NotificationsKey) },
         )
     }
 
@@ -87,7 +92,8 @@ object ProfileNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideProfileEntryInstaller(): EntryProviderInstaller = { navigator -> profileEntries(navigator) }
+    fun provideProfileEntryInstaller(): EntryProviderInstaller =
+        { navigator -> profileEntries(navigator) }
 
     /**
      * Argumentsiz (aniq yo'l) deep link: `nav3bank://profile` → [Profil].

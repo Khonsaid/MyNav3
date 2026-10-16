@@ -1,10 +1,17 @@
 package uz.latizx.mynav3
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.channels.Channel
@@ -14,6 +21,9 @@ import uz.latizx.mynav3.core.navigation.EntryProviderInstaller
 import uz.latizx.mynav3.presenter.app.Nav3AppContent
 import uz.latizx.mynav3.ui.theme.MyNav3Theme
 import uz.latizx.mynav3.core.navigation.deeplink.DeepLinkResolver
+import uz.latizx.mynav3.core.navigation.deeplink.DeepLinkTarget
+import uz.latizx.mynav3.domain.model.AppTheme
+import uz.latizx.mynav3.domain.repository.SettingsRepository
 import javax.inject.Inject
 
 /**
@@ -46,8 +56,11 @@ class MainActivity : ComponentActivity() {
      * Activity → Compose: deep link'lar kanali. Channel bufer sifatida ishlaydi: Compose hali
      * kolleksiya qilishni boshlamagan bo'lsa ham (cold start) deep link yo'qolmaydi.
      */
-    private val deepLinkChannel = Channel<List<NavKey>>(Channel.BUFFERED)
-    private val deepLinks: Flow<List<NavKey>> = deepLinkChannel.receiveAsFlow()
+    private val deepLinkChannel = Channel<DeepLinkTarget>(Channel.BUFFERED)
+    private val deepLinks: Flow<DeepLinkTarget> = deepLinkChannel.receiveAsFlow()
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,14 +69,22 @@ class MainActivity : ComponentActivity() {
 
         // COLD START deep link: faqat Activity birinchi marta yaratilganda.
         // savedInstanceState != null bo'lsa (rotation yoki process death'dan tiklanish),
-        // back stack allaqachon tiklanadi — deep link'ni qayta qo'llash xato bo'lardi.
+        // back stack allaqachon tiklanadi — deep link'ni qayta qo'llash xato bo'lardi. 600f31d5f2af9924
         if (savedInstanceState == null) {
             handleDeepLink(intent)
         }
 
+        Log.d("TTT getCdid", "onCreate: ${getCdid(this)}")
 
         setContent {
-            MyNav3Theme {
+            val theme by settingsRepository.observeTheme().collectAsStateWithLifecycle(AppTheme.SYSTEM)
+            val darkTheme = when (theme) {
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+            }
+
+            MyNav3Theme(darkTheme = darkTheme) {
                 Nav3AppContent(
                     entryInstallers = entryInstallers,
                     deepLinks = deepLinks
@@ -72,6 +93,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("HardwareIds")
+    fun getCdid(context: Context): String {
+        return Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ANDROID_ID
+        )
+    }
 
     /** WARM deep link: ilova ochiq turganda (launchMode="singleTop") kelgan yangi Intent. */
     override fun onNewIntent(intent: Intent) {
@@ -81,6 +109,15 @@ class MainActivity : ComponentActivity() {
 
     private fun handleDeepLink(intent: Intent) {
         val backStack = deepLinkResolver.resolve(intent) ?: return
-        deepLinkChannel.trySend(backStack)
+        // Intent o'zi aytsa — shuni olamiz, aytmasa — umumiy sozlama
+        val exitOnBack = intent.getBooleanExtra(EXTRA_EXIT_ON_BACK, DEFAULT_EXIT_ON_BACK)
+        deepLinkChannel.trySend(DeepLinkTarget(backStack, exitOnBack))
+    }
+
+    companion object {
+        const val EXTRA_EXIT_ON_BACK = "exit_on_back"
+
+        /** BUTUN ILOVA uchun kalit: true — Back = chiqish, false — ota ekranlar bo'ylab qaytish. */
+        const val DEFAULT_EXIT_ON_BACK = true
     }
 }

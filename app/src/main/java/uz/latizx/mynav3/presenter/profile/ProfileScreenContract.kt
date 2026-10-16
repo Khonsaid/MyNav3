@@ -12,7 +12,7 @@ object ProfileScreenContract {
         data class LanguageSelected(val language: AppLanguage) : Intent
 
         data object LogoutClicked : Intent
-
+        data object NotificationSettingsClicked : Intent
         /** LogoutDialog'dan qaytgan NATIJA. */
         data object LogoutConfirmed : Intent
     }
@@ -26,7 +26,7 @@ object ProfileScreenContract {
     sealed interface Effect {
         data class OpenLanguageSheet(val current: AppLanguage) : Effect
         data object OpenLogoutDialog : Effect
-
+        data object OpenNotificationSettings : Effect
         /** Sessiya tugadi → navigatsiya qatlami barcha stack'larni tozalab Login'ni ochadi. */
         data object LoggedOut : Effect
     }

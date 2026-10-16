@@ -39,12 +39,14 @@ fun ProfileRoute(
     onOpenLanguageSheet: (current: AppLanguage) -> Unit,
     onOpenLogoutDialog: () -> Unit,
     onLoggedOut: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     CollectEffect(viewModel.effect) { effect ->
         when (effect) {
             is Effect.OpenLanguageSheet -> onOpenLanguageSheet(effect.current)
+            Effect.OpenNotificationSettings -> onOpenNotificationSettings()
             Effect.OpenLogoutDialog -> onOpenLogoutDialog()
             Effect.LoggedOut -> onLoggedOut()
         }
@@ -108,6 +110,13 @@ private fun ProfileContent(
             onClick = dropUnlessResumed { onIntent(Intent.LanguageClicked) },
         )
         HorizontalDivider()
+
+        SimpleListRow(
+            title = "Bildirishnoma sozlamalari",
+            onClick = dropUnlessResumed { onIntent(Intent.NotificationSettingsClicked) },
+        )
+        HorizontalDivider()
+
         // Dialog MANZILI + natija → logout (barcha stack'lar tozalanadi)
         SimpleListRow(
             title = if (isLoggingOut) "Chiqilmoqda..." else "Chiqish",

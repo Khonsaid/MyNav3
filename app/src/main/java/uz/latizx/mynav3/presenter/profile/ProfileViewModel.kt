@@ -37,7 +37,7 @@ class ProfileViewModel @Inject constructor(
             is Intent.LanguageSelected -> viewModelScope.launch { changeLanguage(intent.language) }
 
             Intent.LogoutClicked -> sendEffect(Effect.OpenLogoutDialog)
-
+            Intent.NotificationSettingsClicked -> sendEffect(Effect.OpenNotificationSettings)
             Intent.LogoutConfirmed -> {
                 if (currentState.isLoggingOut) return
                 viewModelScope.launch {

@@ -38,6 +38,11 @@ class NavigationState(
     val topLevelStack: NavBackStack<NavKey>,
     val subStacks: Map<NavKey, NavBackStack<NavKey>>,
     val pendingDeepLink: NavBackStack<NavKey>,
+    /**
+     * Deep link "chiqish" rejimi: shu yerdagi key eng tepada turganda tizim Back → ilovadan chiqish.
+     * 0 yoki 1 element. NavBackStack bo'lgani uchun rotation / process death'da saqlanadi.
+     */
+    val exitOnBackKey: NavBackStack<NavKey>,
 ) {
     val topLevelKeys: Set<NavKey>
         get() = subStacks.keys
@@ -77,6 +82,7 @@ fun rememberNavigationState(
     // key(tabKey) — har bir stack'ning saqlangan holati (saveable kaliti) alohida bo'lishi uchun
     val subStacks = topLevelKeys.associateWith { tabKey -> key(tabKey) { rememberNavBackStack() } }
     val pendingDeepLink = rememberNavBackStack()
+    val exitOnBackKey = rememberNavBackStack()
 
     return remember(homeKey, topLevelKeys) {
         NavigationState(
@@ -85,6 +91,7 @@ fun rememberNavigationState(
             topLevelStack = topLevelStack,
             subStacks = subStacks,
             pendingDeepLink = pendingDeepLink,
+            exitOnBackKey = exitOnBackKey,
         )
     }
 }

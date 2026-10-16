@@ -65,6 +65,19 @@ class Navigator(private val state: NavigationState) {
             else -> Unit
         }
     }
+    /**
+     * Faqat TIZIM Back uchun (NavDisplay.onBack). Ekrandagi "←" tugmalar avvalgidek goBack()'ni chaqiradi.
+     * @return false — ilovadan chiqish kerak (deep link bilan ochilgan ekrandamiz).
+     */
+    fun onSystemBack(): Boolean {
+        val target = state.exitOnBackKey.lastOrNull()
+        if (target != null && !state.isInAuthFlow && state.currentStack.lastOrNull() == target) {
+            state.exitOnBackKey.clear()
+            return false
+        }
+        goBack()
+        return true
+    }
 
     /**
      * Joriy (eng tepadagi) ekranni [key] bilan almashtiradi — orqaga qaytganda eski ekran
@@ -111,6 +124,8 @@ class Navigator(private val state: NavigationState) {
     fun switchTab(tab: NavKey) {
         require(tab in state.topLevelKeys) { "$tab top-level (tab) key emas" }
         if (state.isInAuthFlow) return
+        state.exitOnBackKey.clear()
+
         if (tab == state.currentTopLevelKey) {
             state.subStacks.getValue(tab).popToRoot()
         } else {
@@ -126,6 +141,7 @@ class Navigator(private val state: NavigationState) {
     fun navigateInTab(tab: NavKey, key: NavKey) {
         require(tab in state.topLevelKeys) { "$tab top-level (tab) key emas" }
         if (state.isInAuthFlow) return
+        state.exitOnBackKey.clear()
         selectTab(tab)
         state.subStacks.getValue(tab).pushSingleTop(key)
     }
@@ -154,6 +170,7 @@ class Navigator(private val state: NavigationState) {
      */
     fun logout(loginKey: NavKey) {
         state.pendingDeepLink.clear()
+        state.exitOnBackKey.clear()
         state.topLevelStack.clear()
         state.subStacks.values.forEach { stack -> stack.clear() }
         state.authStack.clear()
@@ -169,8 +186,12 @@ class Navigator(private val state: NavigationState) {
      * Foydalanuvchi hali login qilmagan bo'lsa — deep link saqlanadi va login'dan keyin
      * ([completeAuthFlow]) ochiladi.
      */
-    fun openDeepLink(backStack: List<NavKey>) {
+    fun openDeepLink(backStack: List<NavKey>, exitOnBack: Boolean = false) {
         if (backStack.isEmpty()) return
+        // Har bir yangi havola eski belgini o'chiradi; kerak bo'lsa yangisini qo'yadi
+        state.exitOnBackKey.clear()
+        if (exitOnBack) state.exitOnBackKey.add(backStack.last())
+
         if (state.isInAuthFlow) {
             state.pendingDeepLink.clear()
             state.pendingDeepLink.addAll(backStack)
